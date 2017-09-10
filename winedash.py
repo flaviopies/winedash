@@ -5,7 +5,6 @@ import dash_table_experiments as dt
 import plotly.graph_objs as go
 import pandas as pd
 import flask
-import json
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server)
@@ -99,7 +98,7 @@ country_dd = html.Div([
                 dcc.Dropdown(
                 id='xaxis-column',
                 options=[{'label': i, 'value': i} for i in countries],
-                value=['Portugal',"Chile"],
+                value=[],
                 multi=True
                 )
             ], style={'width': '70%'}, className ="u-full-width")
@@ -107,7 +106,7 @@ vendor_location_dd = html.Div([
                         dcc.Dropdown(
                             id='yaxis-column',
                             options=[{'label': i, 'value': i} for i in vendor_location_countries],
-                            value=['Brazil'],
+                            value=[],
                             multi=True
                         )
                     ],style={'width': '70%'})
@@ -115,7 +114,7 @@ vendor_dd = html.Div([
                 dcc.Dropdown(
                 id='vendor-name',
                 options=[{'label': i, 'value': i} for i in vendor_names],
-                value=['Wine Brazil'],
+                value=[],
                 multi=True
                 )
             ], style={'width': '70%'}, className ="u-full-width")
@@ -123,13 +122,10 @@ region_dd = html.Div([
                 dcc.Dropdown(
                 id='regions',
                 options=[{'label': i, 'value': i} for i in regions],
-                value=['Primitivo di Manduria'],
+                value=[],
                 multi=True
                 )
             ], style={'width': '70%'}, className ="u-full-width")
-
-
-
 price_slider = dcc.Slider(id='year--slider',min=df['Price'].min(),max=df['Price'].max(),value=df['Price'].max(),step=10)
 app.layout = html.Div([
         html.Div(
@@ -149,6 +145,7 @@ app.layout = html.Div([
                  vendor_location_dd,
                  html.Div("Vendor name"),
                  vendor_dd,
+                 html.Div("Maximum price"),
                  price_slider
                  ],
                 className="three columns"
@@ -170,16 +167,12 @@ app.layout = html.Div([
         )
     ])
 
-@app.callback(
-    dash.dependencies.Output('indicator-graphic', 'figure'),
-    [dash.dependencies.Input('xaxis-column', 'value'),
+@app.callback(dash.dependencies.Output('indicator-graphic', 'figure'), [dash.dependencies.Input('xaxis-column', 'value'),
      dash.dependencies.Input('yaxis-column', 'value'),
      dash.dependencies.Input('year--slider','value'),
      dash.dependencies.Input('vendor-name','value'),
      dash.dependencies.Input('regions', 'value')
      ])
-
-
 def update_graph(xaxis_column_name, yaxis_column_name,year_value, vendor,region_value):
 
     #dff = df[(df["Price"] < year_value) &
@@ -224,16 +217,12 @@ def update_graph(xaxis_column_name, yaxis_column_name,year_value, vendor,region_
     }
 
 
-@app.callback(
-    dash.dependencies.Output('hover-data', 'children'),
-    [dash.dependencies.Input('indicator-graphic', 'hoverData')])
+@app.callback(dash.dependencies.Output('hover-data', 'children'),[dash.dependencies.Input('indicator-graphic', 'hoverData')])
 def display_hover_data(hoverData):
     return hoverData['points'][0]['hoverinfo']
 
 
-@app.callback(
-    dash.dependencies.Output('links-list', 'children'),
-    [dash.dependencies.Input('indicator-graphic', 'clickData')])
+@app.callback(dash.dependencies.Output('links-list', 'children'),[dash.dependencies.Input('indicator-graphic', 'clickData')])
 def display_click_data(clickData):
     links_list[0].append(clickData['points'][0]['hoverinfo'])
     links_list[1].append(clickData['points'][0]['text'])
