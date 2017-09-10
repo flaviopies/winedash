@@ -13,6 +13,8 @@ app = dash.Dash(__name__, server=server)
 df = pd.read_excel('Wines.xlsx')
 countries = df['Country'].unique()
 vendor_location_countries = df['Vendor_location'].unique()
+vendor_names = df["Vendor_name"].unique()
+regions = df["Region"].unique()
 
 links_list = [[],[],[],[]]
 
@@ -64,22 +66,22 @@ def generate_table(df, max_rows=5):
 
 
 def generate_links_table(links_list):
-    links = list(set(links_list[0]))
-    names = list(set(links_list[1]))
-    prices = list(set(links_list[2]))
-    ratings = list(set(links_list[3]))
-    links_section = [html.P(
+    links = links_list[0]
+    names = links_list[1]
+    prices = links_list[2]
+    ratings = links_list[3]
+    links_section = [html.Pre(
                 html.A("- " + names[i] + " - " + str(ratings[i]) + " - R$: " + str(prices[i]),
-                    href= link,
+                    href= links[i],
                     target="_blank"
                 )
+                ,style=styles['pre']
             )
-        for i, link in enumerate(links)
+        for i in range(0,len(links),2)
         ]
 
 
     return html.Div(links_section ,id="links-list")
-
 
 
 def generate_better_table(df, max_rows=5):
@@ -101,7 +103,6 @@ country_dd = html.Div([
                 multi=True
                 )
             ], style={'width': '70%'}, className ="u-full-width")
-
 vendor_location_dd = html.Div([
                         dcc.Dropdown(
                             id='yaxis-column',
@@ -110,9 +111,26 @@ vendor_location_dd = html.Div([
                             multi=True
                         )
                     ],style={'width': '70%'})
+vendor_dd = html.Div([
+                dcc.Dropdown(
+                id='vendor-name',
+                options=[{'label': i, 'value': i} for i in vendor_names],
+                value=['Wine Brazil'],
+                multi=True
+                )
+            ], style={'width': '70%'}, className ="u-full-width")
+region_dd = html.Div([
+                dcc.Dropdown(
+                id='regions',
+                options=[{'label': i, 'value': i} for i in regions],
+                value=['Primitivo di Manduria'],
+                multi=True
+                )
+            ], style={'width': '70%'}, className ="u-full-width")
+
+
 
 price_slider = dcc.Slider(id='year--slider',min=df['Price'].min(),max=df['Price'].max(),value=df['Price'].max(),step=10)
-
 app.layout = html.Div([
         html.Div(
             [markdown_div
@@ -125,8 +143,12 @@ app.layout = html.Div([
                 [
                  html.Div("Wine country"),
                  country_dd,
+                 html.Div("Region"),
+                 region_dd,
                  html.Div("Vendor based in"),
                  vendor_location_dd,
+                 html.Div("Vendor name"),
+                 vendor_dd,
                  price_slider
                  ],
                 className="three columns"
@@ -152,11 +174,27 @@ app.layout = html.Div([
     dash.dependencies.Output('indicator-graphic', 'figure'),
     [dash.dependencies.Input('xaxis-column', 'value'),
      dash.dependencies.Input('yaxis-column', 'value'),
-     dash.dependencies.Input('year--slider','value')])
+     dash.dependencies.Input('year--slider','value'),
+     dash.dependencies.Input('vendor-name','value'),
+     dash.dependencies.Input('regions', 'value')
+     ])
 
 
-def update_graph(xaxis_column_name, yaxis_column_name,year_value):
-    dff = df[(df["Price"] < year_value) & (df["Country"].isin(list(xaxis_column_name))) & (df["Vendor_location"].isin(list(yaxis_column_name)))]
+def update_graph(xaxis_column_name, yaxis_column_name,year_value, vendor,region_value):
+
+    #dff = df[(df["Price"] < year_value) &
+    #         (df["Country"].isin(list(xaxis_column_name))) &
+    #         (df["Vendor_location"].isin(list(yaxis_column_name))) &
+    #         (df["Region"].isin(list(region_value))) &
+    #         (df["Vendor_name"].isin(list(vendor)))
+    #]
+
+    dff = df
+    if xaxis_column_name: dff = dff[dff["Country"].isin(list(xaxis_column_name))]
+    if yaxis_column_name: dff = dff[dff["Vendor_location"].isin(list(yaxis_column_name))]
+    if year_value: dff = dff[dff["Price"] < year_value]
+    if vendor: dff = dff[dff["Vendor_name"].isin(list(vendor))]
+    if region_value: dff = dff[dff["Region"].isin(list(region_value))]
 
     return {
         'data': [go.Scatter(
