@@ -65,7 +65,7 @@ def generate_table(df, max_rows=5):
 
 def generate_links_table(links_list):
     links_list = set(links_list)
-    return html.Div([html.P(dcc.Link(link, href=link)) for link in links_list],id="links-list")
+    return html.Div([html.P(html.A("Link",href=link, target="_blank")) for link in links_list],id="links-list")
 
 
 def generate_better_table(df, max_rows=5):
@@ -148,7 +148,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,year_value):
         'data': [go.Scatter(
             x=dff['Price'],
             y=dff['Rating'],
-            text= dff['Name_link'],
+            text= dff['Name'],
             hoverinfo=dff['Link'],
             mode='markers',
             marker={
