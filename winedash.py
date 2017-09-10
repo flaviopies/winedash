@@ -10,10 +10,11 @@ import json
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server)
 
-# Append an externally hosted CSS stylesheet
-app.css.append_css({
-    "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
-})
+df = pd.read_excel('Wines.xlsx')
+countries = df['Country'].unique()
+vendor_location_countries = df['Vendor_location'].unique()
+
+links_list = []
 
 styles = {
     'column': {
@@ -26,25 +27,27 @@ styles = {
     'pre': {'border': 'thin lightgrey solid'}
 }
 
+# Append an externally hosted CSS stylesheet
+app.css.append_css({
+    "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
+#    "external_url": "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+})
 
-df = pd.read_excel('Wines.xlsx')
-
-countries = df['Country'].unique()
-vendor_location_countries = df['Vendor_location'].unique()
-
-markdown_text = '''
+markdown_div = dcc.Markdown(''' 
 ### Data Sommelier - make your wine purchases better informed
 
 Use the wigdets to find the best option
-'''
+''')
 
-hover_data = html.Div(
-    [
+hover_data = html.Div([
         dcc.Markdown("**Hover Data** - Mouse over values in the graph.".replace('   ', '')),
-            html.Pre(id='hover-data', style=styles['pre'])
-    ],
-    style=styles['column']
-)
+        html.Pre(id='hover-data', style=styles['pre'])
+    ])
+
+click_data = html.Div([
+        dcc.Markdown("**Click Data** - Click over values in the graph.".replace('   ', '')),
+        html.Pre(id='click-data', style=styles['pre'])
+    ])
 
 
 def generate_table(df, max_rows=5):
@@ -60,6 +63,11 @@ def generate_table(df, max_rows=5):
     )
 
 
+def generate_links_table(links_list):
+    links_list = set(links_list)
+    return html.Div([html.P(dcc.Link(link, href=link)) for link in links_list],id="links-list")
+
+
 def generate_better_table(df, max_rows=5):
 
     return dt.DataTable(
@@ -71,7 +79,6 @@ def generate_better_table(df, max_rows=5):
     )
 
 
-markdown_div = dcc.Markdown(children=markdown_text)
 country_dd = html.Div([
                 dcc.Dropdown(
                 id='xaxis-column',
@@ -79,8 +86,7 @@ country_dd = html.Div([
                 value=['Portugal',"Chile"],
                 multi=True
                 )
-            ], style={'width': '70%'},
-            className ="u-full-width")
+            ], style={'width': '70%'}, className ="u-full-width")
 
 vendor_location_dd = html.Div([
                         dcc.Dropdown(
@@ -91,17 +97,9 @@ vendor_location_dd = html.Div([
                         )
                     ],style={'width': '70%'})
 
-price_slider =    dcc.Slider(
-                                id='year--slider',
-                                min=df['Price'].min(),
-                                max=df['Price'].max(),
-                                value=df['Price'].max(),
-                                step=None,
-                                marks={str(price): str(price) for price in range(int(df["Price"].max()),100)}
-                            )
+price_slider = dcc.Slider(id='year--slider',min=df['Price'].min(),max=df['Price'].max(),value=df['Price'].max(),step=10)
 
-app.layout = html.Div(
-    [
+app.layout = html.Div([
         html.Div(
             [markdown_div
              ],
@@ -127,14 +125,14 @@ app.layout = html.Div(
             )],className="five columns"
             ),
             html.Div(
-                [hover_data
+                [hover_data,
+                 generate_links_table(links_list)
                  ],
                 className="three columns"
             )],
             className="row"
         )
-    ]
-)
+    ])
 
 @app.callback(
     dash.dependencies.Output('indicator-graphic', 'figure'),
@@ -150,7 +148,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,year_value):
         'data': [go.Scatter(
             x=dff['Price'],
             y=dff['Rating'],
-            text= html.Link(dff['Name_link']),
+            text= dff['Name_link'],
             hoverinfo=dff['Link'],
             mode='markers',
             marker={
@@ -177,13 +175,17 @@ def update_graph(xaxis_column_name, yaxis_column_name,year_value):
 @app.callback(
     dash.dependencies.Output('hover-data', 'children'),
     [dash.dependencies.Input('indicator-graphic', 'hoverData')])
-
-
-#def display_hover_data(hoverData):
-#    return json.dumps(hoverData, indent=2)
-
 def display_hover_data(hoverData):
     return hoverData['points'][0]['hoverinfo']
+
+
+@app.callback(
+    dash.dependencies.Output('links-list', 'children'),
+    [dash.dependencies.Input('indicator-graphic', 'clickData')])
+def display_click_data(clickData):
+    links_list.append(clickData['points'][0]['hoverinfo'])
+    return generate_links_table(links_list)
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
