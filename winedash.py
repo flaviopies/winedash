@@ -14,7 +14,7 @@ df = pd.read_excel('Wines.xlsx')
 countries = df['Country'].unique()
 vendor_location_countries = df['Vendor_location'].unique()
 
-links_list = []
+links_list = [[],[],[],[]]
 
 styles = {
     'column': {
@@ -40,7 +40,7 @@ Use the wigdets to find the best option
 ''')
 
 hover_data = html.Div([
-        dcc.Markdown("**Hover Data** - Mouse over values in the graph.".replace('   ', '')),
+        dcc.Markdown("**Wine basket** - Click on the dots to save the links.".replace('   ', '')),
         html.Pre(id='hover-data', style=styles['pre'])
     ])
 
@@ -64,8 +64,22 @@ def generate_table(df, max_rows=5):
 
 
 def generate_links_table(links_list):
-    links_list = set(links_list)
-    return html.Div([html.P(html.A("Link",href=link, target="_blank")) for link in links_list],id="links-list")
+    links = list(set(links_list[0]))
+    names = list(set(links_list[1]))
+    prices = list(set(links_list[2]))
+    ratings = list(set(links_list[3]))
+    links_section = [html.P(
+                html.A("- " + names[i] + " - " + str(ratings[i]) + " - R$: " + str(prices[i]),
+                    href= link,
+                    target="_blank"
+                )
+            )
+        for i, link in enumerate(links)
+        ]
+
+
+    return html.Div(links_section ,id="links-list")
+
 
 
 def generate_better_table(df, max_rows=5):
@@ -183,7 +197,10 @@ def display_hover_data(hoverData):
     dash.dependencies.Output('links-list', 'children'),
     [dash.dependencies.Input('indicator-graphic', 'clickData')])
 def display_click_data(clickData):
-    links_list.append(clickData['points'][0]['hoverinfo'])
+    links_list[0].append(clickData['points'][0]['hoverinfo'])
+    links_list[1].append(clickData['points'][0]['text'])
+    links_list[2].append(clickData['points'][0]['x'])
+    links_list[3].append(clickData['points'][0]['y'])
     return generate_links_table(links_list)
 
 
