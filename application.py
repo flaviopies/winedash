@@ -5,11 +5,28 @@ import dash_table_experiments as dt
 import plotly.graph_objs as go
 import pandas as pd
 import flask
+from sqlalchemy import create_engine
 
 server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server)
+application = app = dash.Dash(name = __name__ , server = server)
+#app.config.supress_callback_exceptions = True
 
-df = pd.read_excel('Wines.xlsx')
+analytics_url = "https://cdn.rawgit.com/flaviopies/d37768d4316685aed0ae5f3552790d2a/raw/4c06d678f9fb4838d330af9730cf255890d3e604/analytics.js"
+
+app.scripts.append_script({
+'external_url': analytics_url
+})
+
+#app.config.update({
+    # as the proxy server will remove the prefix
+#    'routes_pathname_prefix': '/'
+#})
+
+
+#df = pd.read_excel('Wines.xlsx')
+engine = create_engine('mysql+pymysql://winenerd:12345678@winenerd.c7j0vil1gdxi.us-east-2.rds.amazonaws.com:49664/winesdb')
+df = pd.read_sql_table("wineoffers", engine)
+
 countries = df['Country'].unique()
 vendor_location_countries = df['Vendor_location'].unique()
 vendor_names = df["Vendor_name"].unique()
@@ -28,13 +45,13 @@ styles = {
     'pre': {'border': 'thin lightgrey solid'}
 }
 
+
 # Append an externally hosted CSS stylesheet
 app.css.append_css({
     "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
-#    "external_url": "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
 })
 
-markdown_div = dcc.Markdown(''' 
+markdown_div = dcc.Markdown('''
 ### Data Sommelier - make your wine purchases better informed
 
 Use the wigdets to find the best option
@@ -232,4 +249,4 @@ def display_click_data(clickData):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    application.run_server(debug=True)
